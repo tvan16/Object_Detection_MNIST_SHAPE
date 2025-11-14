@@ -153,9 +153,10 @@ test_scene*.png
 # Datasets (large folders)
 mnist_competition/train/
 mnist_competition/public_test/
-Shapes_Classifier/dataset/output/
 mnist_competition.zip
-Shapes_Classifier/dataset.zip
+
+# Shapes Classifier folder (entire folder)
+Shapes_Classifier/
 
 # Model files (too large for git)
 best_*.pth
