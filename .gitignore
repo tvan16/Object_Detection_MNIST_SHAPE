@@ -1,3 +1,7 @@
+# ============================================================================
+# Python
+# ============================================================================
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -27,76 +31,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
+# Virtual Environments
 .env
 .venv
 env/
@@ -105,72 +40,26 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Jupyter Notebook
+.ipynb_checkpoints
 
-# Rope project settings
-.ropeproject
+# pyenv
+.python-version
 
-# mkdocs documentation
-/site
+# ============================================================================
+# IDE & Editors
+# ============================================================================
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# PyTorch
-*.pth
-*.pt
-*.ckpt
-*.pkl
-
-# TensorFlow
-*.h5
-*.pb
-checkpoint
-*.tfrecord
-
-# Data files
-*.csv
-*.json
-*.txt
-*.xml
-*.yaml
-*.yml
-
-# Image files (keep only sample images, ignore test outputs)
-result*.png
-result*.jpg
-output*.png
-output*.jpg
-test_scene*.png
-
-# Datasets (large folders)
-mnist_competition/train/
-mnist_competition/public_test/
-mnist_competition.zip
-
-# Shapes Classifier folder (entire folder)
-Shapes_Classifier/
-
-# Model files (too large for git)
-best_*.pth
-unified_model_*.pth
-*.weights
-
-# IDE settings
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS files
+# ============================================================================
+# OS Files
+# ============================================================================
+
 .DS_Store
 .DS_Store?
 ._*
@@ -179,32 +68,69 @@ unified_model_*.pth
 ehthumbs.db
 Thumbs.db
 desktop.ini
+__MACOSX/
 
-# Temporary files
+# ============================================================================
+# MNIST Competition Dataset
+# ============================================================================
+
+# Ignore extracted folders (too large), keep only zip
+mnist_competition/train/
+mnist_competition/public_test/
+
+# Keep these:
+# mnist_competition.zip
+# mnist_competition/train_label.csv
+# mnist_competition/public_test.csv
+# mnist_competition/example_submission.csv
+
+# ============================================================================
+# Shapes Classifier Dataset
+# ============================================================================
+
+# Ignore dataset folder (too large), keep everything else
+Shapes_Classifier/dataset/
+
+# Keep these:
+# Shapes_Classifier/*.py
+# Shapes_Classifier/*.ipynb
+# Shapes_Classifier/README.md
+# Shapes_Classifier/requirements.txt
+# Shapes_Classifier/dataset.zip
+
+# ============================================================================
+# Output & Test Files
+# ============================================================================
+
+# Generated results
+*_result.png
+*_result.json
+synthetic_test_scene*.png
+synthetic_test_scene*.json
+
+# Test images (keep Sample.png)
+Test_*.jpg
+Test_*.png
+Sample_result.png
+Sample_result.json
+Sample_shapes_only.png
+Sample_shapes_only.json
+
+# Training outputs
+training_history.png
+per_class_performance.csv
+confusion_matrix.png
+evaluation_report.txt
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+
 *.tmp
 *.temp
 tmp/
 temp/
-
-# Log files
 logs/
 *.log
-
-# CRAFT models (large pretrained models)
-craft_*.pth
-CRAFT-pytorch/
-
-# Custom project specific
-Sample_result.png
-Sample_result.json
-Test_*.jpg
-Test_*.png
-__MACOSX/
-
-# Keep these files
-!requirements.txt
-!label_mapping.json
-!Sample.png
-!README*.md
 
 

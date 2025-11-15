@@ -137,7 +137,7 @@ class CRAFTDetector:
     Better for: complex backgrounds, rotated text, scene text
     """
     
-    def __init__(self, model_path='craft_mlt_25k.pth',
+    def __init__(self, model_path='weights/craft_mlt_25k.pth',
                  text_threshold=0.7, link_threshold=0.4, low_text=0.4):
         """
         Args:
@@ -148,13 +148,22 @@ class CRAFTDetector:
         """
         try:
             import sys
+            import torch
             sys.path.append('./craft_repo')
             from craft_repo import craft
             from craft_repo import craft_utils
             from craft_repo import imgproc
             
             self.craft_net = craft.CRAFT()
-            self.craft_net.load_state_dict(torch.load(model_path))
+            
+            # Load weights and handle DataParallel prefix
+            checkpoint = torch.load(model_path, map_location='cpu')
+            
+            # Remove 'module.' prefix if present (from DataParallel training)
+            if isinstance(checkpoint, dict) and any(k.startswith('module.') for k in checkpoint.keys()):
+                checkpoint = {k.replace('module.', ''): v for k, v in checkpoint.items()}
+            
+            self.craft_net.load_state_dict(checkpoint)
             self.craft_net.eval()
             
             self.craft_utils = craft_utils

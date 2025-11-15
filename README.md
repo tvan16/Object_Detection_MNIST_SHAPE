@@ -31,21 +31,79 @@ Input Image → Detection (Traditional CV/CRAFT) → Classification (EfficientNe
 ### Yêu cầu hệ thống
 
 - Python 3.8+
-- CUDA (optional, cho GPU acceleration)
+- CUDA 11.8+ (optional, cho GPU acceleration)
 - RAM: 8GB+ (16GB recommended)
+- Disk space: ~5GB (cho datasets và models)
 
-### Cài đặt dependencies
+### Bước 1: Clone repository
 
 ```bash
-# Clone repository
-git clone <your-repo-url>
+# Clone project từ GitHub
+git clone https://github.com/your-username/BTL_XLA.git
 cd BTL_XLA
+```
 
-# Cài đặt các thư viện cần thiết
+### Bước 2: Setup Conda Environment (Khuyến nghị)
+
+```bash
+# Tạo conda environment mới
+conda create -n btl_xla python=3.10 -y
+
+# Activate environment
+conda activate btl_xla
+
+# Cài đặt PyTorch với CUDA (nếu có GPU)
+conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+
+# Cài đặt các dependencies còn lại
 pip install -r requirements.txt
 ```
 
-### Chuẩn bị dữ liệu
+**Hoặc nếu chỉ dùng CPU:**
+
+```bash
+conda create -n btl_xla python=3.10 -y
+conda activate btl_xla
+conda install pytorch torchvision cpuonly -c pytorch -y
+pip install -r requirements.txt
+```
+
+### Bước 3: Tải và chuẩn bị dữ liệu
+
+#### 3.1. MNIST Dataset
+
+```bash
+# Giải nén mnist_competition.zip (nếu có)
+unzip mnist_competition.zip
+
+# Hoặc tải từ Kaggle/Google Drive
+# Cấu trúc: mnist_competition/train/ và mnist_competition/train_label.csv
+```
+
+#### 3.2. Shapes Dataset
+
+```bash
+# Giải nén dataset trong Shapes_Classifier
+cd Shapes_Classifier
+unzip dataset.zip
+cd ..
+```
+
+#### 3.3. CRAFT Weights (cho Hybrid Detector)
+
+```bash
+# Tạo thư mục weights
+mkdir weights
+
+# Tải CRAFT weights
+wget https://drive.google.com/uc?id=1Jk4eGD7crsqCCg9C9VjCLkMN3ze8kutZ -O weights/craft_mlt_25k.pth
+
+# Hoặc dùng gdown
+pip install gdown
+gdown https://drive.google.com/uc?id=1Jk4eGD7crsqCCg9C9VjCLkMN3ze8kutZ -O weights/craft_mlt_25k.pth
+```
+
+### Chuẩn bị dữ liệu hoàn tất
 
 Đảm bảo cấu trúc thư mục như sau:
 
@@ -53,9 +111,14 @@ pip install -r requirements.txt
 BTL_XLA/
 ├── mnist_competition/
 │   ├── train/              # 60,000 MNIST images
-│   └── train_label.csv
-└── Shapes_Classifier/
-    └── dataset/output/     # 90,000 shape images
+│   ├── train_label.csv
+│   └── public_test/
+├── Shapes_Classifier/
+│   └── dataset/output/     # 90,000 shape images (Circle, Square, etc.)
+├── weights/
+│   └── craft_mlt_25k.pth   # CRAFT pretrained weights (~85MB)
+├── unified_model_19classes_best.pth  # Trained classifier
+└── label_mapping.json
 ```
 
 ## 📚 Hướng dẫn sử dụng
@@ -64,47 +127,112 @@ BTL_XLA/
 
 Train mô hình EfficientNet-B0 trên 19 classes:
 
+#### Sử dụng Python Script
+
 ```bash
-python train_unified_classifier.py --epochs 10 --batch-size 64
+python train_unified_classifier.py --epochs 20 --batch-size 64
 ```
 
 **Tham số:**
-- `--epochs`: Số epoch (mặc định: 10)
+- `--epochs`: Số epoch (mặc định: 20)
 - `--batch-size`: Batch size (mặc định: 64)
 - `--lr`: Learning rate (mặc định: 1e-4)
+- `--device`: 'cuda' hoặc 'cpu'
+
+#### Sử dụng Jupyter Notebook
+
+```bash
+jupyter notebook train_unified_classifier.ipynb
+```
 
 **Output:**
 - `unified_model_19classes_best.pth`: Model đã train
 - `label_mapping.json`: Ánh xạ class labels
+- `training_history.png`: Biểu đồ loss/accuracy
 
-### 2. Inference trên ảnh
+### 2. Pipeline - Inference trên ảnh
 
-#### Xử lý ảnh có sẵn
+#### 2.1. Xử lý ảnh có sẵn (tất cả classes)
 
 ```bash
-python pipeline.py --image your_image.png --output result.png
+python pipeline.py --image Sample.png --output Sample_result.png
 ```
 
-#### Tạo ảnh test synthetic
+#### 2.2. Chỉ nhận diện SHAPES
 
 ```bash
-python pipeline.py --generate --num-objects 7
+python pipeline.py --image Sample.png --target shapes --output Sample_shapes_only.png
+```
+
+#### 2.3. Chỉ nhận diện DIGITS
+
+```bash
+python pipeline.py --image Sample.png --target digits --output Sample_digits_only.png
+```
+
+#### 2.4. Sử dụng Hybrid Detector (CRAFT + Traditional CV)
+
+```bash
+python pipeline.py --image Sample.png --detector hybrid --target all
+```
+
+#### 2.5. Tạo ảnh test synthetic tự động
+
+```bash
+# Tạo ảnh với 5 objects (mặc định)
+python pipeline.py --generate
+
+# Tạo ảnh với 10 objects
+python pipeline.py --generate --num-objects 10
+
+# Tạo và chỉ detect shapes
+python pipeline.py --generate --num-objects 8 --target shapes
+```
+
+**Pipeline Output:**
+- `*_result.png`: Ảnh được annotate với bounding boxes
+- `*_result.json`: Kết quả detection ở định dạng JSON
+
+**Pipeline Arguments:**
+
+| Argument | Choices | Default | Mô tả |
+|----------|---------|---------|-------|
+| `--image` | path | None | Đường dẫn ảnh input |
+| `--output` | path | Auto | Đường dẫn ảnh output |
+| `--target` | `digits`, `shapes`, `all` | `all` | Loại objects cần detect |
+| `--detector` | `traditional`, `hybrid` | `traditional` | Phương pháp detection |
+| `--generate` | flag | False | Tạo ảnh test synthetic |
+| `--num-objects` | int | 5 | Số objects trong synthetic scene |
+| `--model` | path | `unified_model_19classes_best.pth` | Model weights |
+| `--labels` | path | `label_mapping.json` | Label mapping |
+| `--device` | `cuda`, `cpu` | Auto | Device để inference |
+
+### 3. Evaluation
+
+Đánh giá hiệu năng model:
+
+```bash
+python evaluate_model.py
 ```
 
 **Output:**
-- `result.png`: Ảnh được annotate với bounding boxes
-- `result.json`: Kết quả detection ở định dạng JSON
+- Per-class accuracy report
+- Confusion matrix
+- Classification report
+- `per_class_performance.csv`
 
-### 3. Sử dụng như một module
+### 4. Sử dụng như một module
 
 ```python
 from pipeline import UnifiedPipeline
 
-# Khởi tạo pipeline
+# Khởi tạo pipeline - Detect ALL
 pipeline = UnifiedPipeline(
     model_path='unified_model_19classes_best.pth',
     label_mapping_path='label_mapping.json',
-    device='cuda'  # hoặc 'cpu'
+    device='cuda',  # hoặc 'cpu'
+    detector_type='traditional',  # hoặc 'hybrid'
+    target_classes='all'  # 'digits', 'shapes', hoặc 'all'
 )
 
 # Xử lý ảnh
@@ -114,6 +242,29 @@ results = pipeline.process_file('test_image.png')
 print(f"Detected {len(results['labels'])} objects")
 for label, conf in zip(results['labels'], results['confidences']):
     print(f"Class: {label}, Confidence: {conf:.2%}")
+```
+
+#### Tạo synthetic data
+
+```python
+from pipeline import generate_synthetic_scene
+import cv2
+
+# Tạo scene với 10 random objects
+canvas, ground_truth = generate_synthetic_scene(
+    mnist_dir='mnist_competition/train',
+    shapes_dir='Shapes_Classifier/dataset/output',
+    mnist_csv='mnist_competition/train_label.csv',
+    num_objects=10,
+    canvas_size=(800, 600),
+    seed=42
+)
+
+# Lưu ảnh
+cv2.imwrite('my_test_scene.png', canvas)
+
+# In ground truth
+print("Ground truth labels:", [item[4] for item in ground_truth])
 ```
 
 ## 📁 Cấu trúc dự án
@@ -201,6 +352,175 @@ canvas, ground_truth = generate_synthetic_scene(
     canvas_size=(800, 600),
     seed=42
 )
+```
+
+## 🔄 Hướng dẫn Push/Pull với GitHub (Sử dụng Conda)
+
+### Lần đầu push lên GitHub
+
+#### Bước 1: Tạo repository trên GitHub
+
+1. Vào [GitHub](https://github.com)
+2. Click **New repository**
+3. Đặt tên: `BTL_XLA`
+4. Chọn **Public** hoặc **Private**
+5. **KHÔNG** chọn "Initialize with README"
+6. Click **Create repository**
+
+#### Bước 2: Setup Git local (nếu chưa có)
+
+```bash
+# Kiểm tra Git đã cài chưa
+git --version
+
+# Nếu chưa có, cài Git
+# Windows: Download từ https://git-scm.com/
+# Linux: sudo apt install git
+# macOS: brew install git
+
+# Config thông tin (chỉ cần 1 lần)
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
+
+#### Bước 3: Khởi tạo Git repository
+
+```bash
+# Activate conda environment
+conda activate btl_xla
+
+# Di chuyển vào thư mục project
+cd D:\BTL_XLA
+
+# Khởi tạo Git repository
+git init
+
+# Kiểm tra status
+git status
+```
+
+#### Bước 4: Add files và commit
+
+```bash
+# Add tất cả files (theo .gitignore)
+git add .
+
+# Kiểm tra những gì sẽ commit
+git status
+
+# Commit lần đầu
+git commit -m "Initial commit: Unified Digits & Shapes Recognition System"
+```
+
+#### Bước 5: Kết nối với GitHub và push
+
+```bash
+# Thêm remote repository (thay YOUR_USERNAME bằng username GitHub của bạn)
+git remote add origin https://github.com/YOUR_USERNAME/BTL_XLA.git
+
+# Kiểm tra remote
+git remote -v
+
+# Push lên GitHub (branch main)
+git branch -M main
+git push -u origin main
+```
+
+**Lưu ý về việc push:**
+- Theo `.gitignore`, những thứ SAU sẽ được push:
+  - ✅ `craft_repo/` (full folder)
+  - ✅ `mnist_competition.zip` (file nén)
+  - ✅ `mnist_competition/*.csv` (các file CSV)
+  - ✅ `Shapes_Classifier/` (trừ folder `dataset/`)
+  - ✅ `weights/craft_mlt_25k.pth`
+  - ✅ `unified_model_19classes_best.pth`
+  - ✅ Tất cả `.py`, `.ipynb`, `.md`, `requirements.txt`
+  - ✅ `Sample.png`, `label_mapping.json`
+
+- Những thứ SAU sẽ KHÔNG push (đã bị ignore):
+  - ❌ `mnist_competition/train/` (60,000 ảnh)
+  - ❌ `mnist_competition/public_test/` (10,000 ảnh)
+  - ❌ `Shapes_Classifier/dataset/` (90,000 ảnh)
+  - ❌ `__pycache__/`, `.ipynb_checkpoints/`
+  - ❌ `*_result.png`, `*_result.json`
+  - ❌ `Test_*.png`, `Test_*.jpg`
+
+### Khi muốn update code (push thay đổi mới)
+
+```bash
+# Activate environment
+conda activate btl_xla
+
+# Kiểm tra thay đổi
+git status
+
+# Add files đã thay đổi
+git add .
+
+# Commit với message mô tả
+git commit -m "Update: Improved detection accuracy"
+
+# Push lên GitHub
+git push origin main
+```
+
+### Khi muốn tải code mới (pull từ GitHub)
+
+```bash
+# Pull code mới nhất
+git pull origin main
+
+# Nếu bị conflict, Git sẽ báo - cần resolve manually
+```
+
+### Clone project từ GitHub (cho máy khác)
+
+```bash
+# Clone repository
+git clone https://github.com/YOUR_USERNAME/BTL_XLA.git
+cd BTL_XLA
+
+# Setup conda environment
+conda create -n btl_xla python=3.10 -y
+conda activate btl_xla
+
+# Cài đặt dependencies
+conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia -y
+pip install -r requirements.txt
+
+# Giải nén datasets
+unzip mnist_competition.zip
+cd Shapes_Classifier
+unzip dataset.zip
+cd ..
+
+# Chạy pipeline
+python pipeline.py --generate --num-objects 5
+```
+
+### Git Commands thường dùng
+
+```bash
+# Xem lịch sử commit
+git log --oneline
+
+# Xem thay đổi chưa commit
+git diff
+
+# Hủy thay đổi chưa add
+git restore filename.py
+
+# Tạo branch mới
+git checkout -b feature/new-feature
+
+# Chuyển branch
+git checkout main
+
+# Merge branch
+git merge feature/new-feature
+
+# Xem tất cả branches
+git branch -a
 ```
 
 ## 🐛 Troubleshooting

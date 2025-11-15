@@ -26,7 +26,7 @@ class UnifiedPipeline:
     """
     
     def __init__(self, model_path, label_mapping_path, device='cuda',
-                 detector_type='traditional', craft_path=None):
+                 detector_type='traditional', craft_path=None, target_classes='all'):
         """
         Args:
             model_path: Path to classifier model (.pth)
@@ -34,8 +34,10 @@ class UnifiedPipeline:
             device: 'cuda' or 'cpu'
             detector_type: 'traditional', 'craft', or 'hybrid'
             craft_path: Path to CRAFT weights (if using CRAFT)
+            target_classes: 'digits', 'shapes', or 'all'
         """
         self.device = device
+        self.target_classes = target_classes
         
         # Load label mapping
         with open(label_mapping_path, 'r') as f:
@@ -44,6 +46,20 @@ class UnifiedPipeline:
             self.label_mapping = {int(k): v for k, v in self.label_mapping.items()}
         
         print(f"✅ Loaded label mapping: {len(self.label_mapping)} classes")
+        
+        # Define digit and shape class IDs
+        self.digit_classes = set(range(10))  # 0-9
+        self.shape_classes = set(range(10, 19))  # 10-18 (Circle to Triangle)
+        
+        # Validate and print target classes
+        if self.target_classes == 'digits':
+            print(f"🎯 Target: DIGITS only (0-9)")
+        elif self.target_classes == 'shapes':
+            print(f"🎯 Target: SHAPES only (Circle, Square, etc.)")
+        elif self.target_classes == 'all':
+            print(f"🎯 Target: ALL classes (digits + shapes)")
+        else:
+            raise ValueError(f"Invalid target_classes: {self.target_classes}. Use 'digits', 'shapes', or 'all'.")
         
         # Load classifier
         self.classifier = self._load_classifier(model_path)
@@ -66,7 +82,7 @@ class UnifiedPipeline:
         # Transform for classification
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((64, 64)),
+            transforms.Resize((128, 128)),  # Increased from 64 to match training
             transforms.Grayscale(num_output_channels=3),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -87,6 +103,25 @@ class UnifiedPipeline:
         model.eval()
         
         return model
+    
+    def _should_keep_class(self, class_id):
+        """
+        Check if a predicted class should be kept based on target_classes filter.
+        
+        Args:
+            class_id: int, predicted class ID (0-18)
+            
+        Returns:
+            bool: True if should keep, False if should filter out
+        """
+        if self.target_classes == 'all':
+            return True
+        elif self.target_classes == 'digits':
+            return class_id in self.digit_classes
+        elif self.target_classes == 'shapes':
+            return class_id in self.shape_classes
+        else:
+            return True  # Default to keeping
     
     def process(self, image, visualize=True):
         """
@@ -115,6 +150,7 @@ class UnifiedPipeline:
             }
         
         # Step 2: Classification
+        filtered_bboxes = []
         labels = []
         confidences = []
         
@@ -138,12 +174,20 @@ class UnifiedPipeline:
                     probs = torch.softmax(output, dim=1)
                     
                     conf, pred = probs.max(1)
+                    pred_class_id = pred.item()
                     
-                    labels.append(self.label_mapping[pred.item()])
-                    confidences.append(conf.item())
+                    # Filter based on target_classes
+                    if self._should_keep_class(pred_class_id):
+                        filtered_bboxes.append((x, y, w, h))
+                        labels.append(self.label_mapping[pred_class_id])
+                        confidences.append(conf.item())
+                    
                 except Exception as e:
                     print(f"Warning: Failed to classify crop at ({x},{y},{w},{h}): {e}")
                     continue
+        
+        # Update bboxes to only include filtered ones
+        bboxes = filtered_bboxes
         
         # Step 3: Visualize
         annotated_image = None
@@ -342,7 +386,8 @@ def main(args):
         model_path=args.model,
         label_mapping_path=args.labels,
         device=args.device,
-        detector_type=args.detector
+        detector_type=args.detector,
+        target_classes=args.target
     )
     
     print()
@@ -402,6 +447,12 @@ if __name__ == '__main__':
                        default='traditional',
                        choices=['traditional', 'hybrid'],
                        help='Detector type')
+    
+    # Target classes filter
+    parser.add_argument('--target', type=str,
+                       default='all',
+                       choices=['digits', 'shapes', 'all'],
+                       help='Target classes: digits (0-9), shapes (Circle, Square, etc.), or all')
     
     # Input/Output
     parser.add_argument('--image', type=str, help='Path to input image')

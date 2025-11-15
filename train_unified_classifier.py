@@ -37,7 +37,7 @@ class Config:
     
     # Model
     NUM_CLASSES = 19
-    INPUT_SIZE = 64
+    INPUT_SIZE = 128  # Increased from 64 to better distinguish high-edge shapes
     
     # Output
     MODEL_PATH = 'unified_model_19classes_best.pth'
@@ -209,12 +209,14 @@ def main(args):
     # Data Splits & Transforms
     # ========================================
     
-    # Transforms: Grayscale → RGB, Resize to 64x64
+    # Transforms: Grayscale → RGB, Resize to 128x128 with stronger augmentation
     train_transform = transforms.Compose([
         transforms.Resize((Config.INPUT_SIZE, Config.INPUT_SIZE)),
         transforms.Grayscale(num_output_channels=3),
-        transforms.RandomRotation(15),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+        transforms.RandomRotation(30),  # Increased from 15
+        transforms.RandomAffine(degrees=0, translate=(0.15, 0.15)),  # Increased from 0.1
+        transforms.RandomPerspective(distortion_scale=0.2, p=0.5),  # Added perspective transform
+        transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Added color jitter
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                            std=[0.229, 0.224, 0.225])
