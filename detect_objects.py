@@ -3,8 +3,11 @@ Object Detection Module
 Supports Traditional CV (contour-based) and CRAFT (text detection)
 """
 
+import os
+import sys
 import cv2
 import numpy as np
+import torch
 from typing import List, Tuple
 
 # ============================================================================
@@ -45,24 +48,8 @@ class TraditionalDetector:
         else:
             gray = image.copy()
         
-        # Enhanced preprocessing for real-world images
-        # 1. Denoising (remove noise)
-        denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
-        
-        # 2. Contrast enhancement (CLAHE)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
-        
-        # 3. Illumination correction (remove uneven lighting)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
-        background = cv2.morphologyEx(enhanced, cv2.MORPH_OPEN, kernel)
-        corrected = cv2.subtract(enhanced, background)
-        
-        # 4. Normalize intensity
-        normalized = cv2.normalize(corrected, None, 0, 255, cv2.NORM_MINMAX)
-        
-        # 5. Blur for threshold
-        blurred = cv2.GaussianBlur(normalized, (5, 5), 0)
+        # Preprocessing
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         
         # Adaptive threshold
         binary = cv2.adaptiveThreshold(
@@ -163,8 +150,6 @@ class CRAFTDetector:
             low_text: Low text threshold
         """
         try:
-            import sys
-            import torch
             sys.path.append('./craft_repo')
             from craft_repo import craft
             from craft_repo import craft_utils
@@ -250,6 +235,10 @@ class CRAFTDetector:
             
             bboxes.append((x_min, y_min, w, h))
         
+        # Apply NMS to remove overlapping detections from CRAFT
+        if len(bboxes) > 0:
+            bboxes = non_max_suppression(bboxes, iou_threshold=0.3)
+        
         return bboxes
 
 # ============================================================================
@@ -316,11 +305,12 @@ class HybridDetector:
         return masked
     
     def _merge_bboxes(self, bboxes1, bboxes2, iou_threshold=0.5):
-        """Merge two bbox lists and remove duplicates."""
+        """Merge two bbox lists and remove duplicates using NMS."""
         all_bboxes = list(bboxes1) + list(bboxes2)
         
-        # Simple NMS (Non-Maximum Suppression)
-        # TODO: Implement proper NMS if needed
+        # Apply Non-Maximum Suppression to remove overlapping boxes
+        if len(all_bboxes) > 0:
+            all_bboxes = non_max_suppression(all_bboxes, iou_threshold=iou_threshold)
         
         return all_bboxes
 
@@ -366,7 +356,7 @@ def non_max_suppression(bboxes: List[Tuple], iou_threshold=0.5) -> List[Tuple]:
         i = idxs[last]
         keep.append(i)
         
-        # Find overlap
+        # Find overlap (IoU = intersection / union)
         xx1 = np.maximum(x1[i], x1[idxs[:last]])
         yy1 = np.maximum(y1[i], y1[idxs[:last]])
         xx2 = np.minimum(x2[i], x2[idxs[:last]])
@@ -375,11 +365,16 @@ def non_max_suppression(bboxes: List[Tuple], iou_threshold=0.5) -> List[Tuple]:
         w = np.maximum(0, xx2 - xx1 + 1)
         h = np.maximum(0, yy2 - yy1 + 1)
         
-        overlap = (w * h) / areas[idxs[:last]]
+        # Calculate intersection and union for proper IoU
+        intersection = w * h
+        area_i = areas[i]
+        area_others = areas[idxs[:last]]
+        union = area_i + area_others - intersection
+        iou = intersection / (union + 1e-6)  # Add small epsilon to avoid division by zero
         
-        # Delete indexes with high overlap
+        # Delete indexes with high IoU (overlapping boxes)
         idxs = np.delete(idxs, np.concatenate(
-            ([last], np.where(overlap > iou_threshold)[0])
+            ([last], np.where(iou > iou_threshold)[0])
         ))
     
     # Convert back to (x, y, w, h)

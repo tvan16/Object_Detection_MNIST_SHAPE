@@ -898,7 +898,7 @@ if __name__ == '__main__':
     
     # Model arguments
     parser.add_argument('--model', type=str,
-                       default='unified_model_19classes_best.pth',
+                       default='unified_model_19classes_best2.pth',
                        help='Path to classifier model')
     parser.add_argument('--labels', type=str,
                        default='label_mapping.json',
