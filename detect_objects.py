@@ -236,8 +236,9 @@ class CRAFTDetector:
             bboxes.append((x_min, y_min, w, h))
         
         # Apply NMS to remove overlapping detections from CRAFT
+        # Lower threshold (0.2) to remove more overlapping boxes
         if len(bboxes) > 0:
-            bboxes = non_max_suppression(bboxes, iou_threshold=0.3)
+            bboxes = non_max_suppression(bboxes, iou_threshold=0.2)
         
         return bboxes
 
@@ -346,36 +347,59 @@ def non_max_suppression(bboxes: List[Tuple], iou_threshold=0.5) -> List[Tuple]:
     # Compute areas
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)
     
-    # Sort by bottom-right y coordinate
-    idxs = np.argsort(y2)
+    # Sort by area (largest first) - keep larger boxes that may contain smaller ones
+    idxs = np.argsort(areas)[::-1]  # Descending order
     
     keep = []
     while len(idxs) > 0:
-        # Pick last index
-        last = len(idxs) - 1
-        i = idxs[last]
+        # Pick first index (largest box)
+        i = idxs[0]
         keep.append(i)
         
-        # Find overlap (IoU = intersection / union)
-        xx1 = np.maximum(x1[i], x1[idxs[:last]])
-        yy1 = np.maximum(y1[i], y1[idxs[:last]])
-        xx2 = np.minimum(x2[i], x2[idxs[:last]])
-        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+        # Get coordinates of current box
+        curr_x1, curr_y1, curr_x2, curr_y2 = x1[i], y1[i], x2[i], y2[i]
+        curr_area = areas[i]
         
-        w = np.maximum(0, xx2 - xx1 + 1)
-        h = np.maximum(0, yy2 - yy1 + 1)
+        # Check remaining boxes
+        remaining_idxs = idxs[1:]
+        to_remove = []
         
-        # Calculate intersection and union for proper IoU
-        intersection = w * h
-        area_i = areas[i]
-        area_others = areas[idxs[:last]]
-        union = area_i + area_others - intersection
-        iou = intersection / (union + 1e-6)  # Add small epsilon to avoid division by zero
+        for j in remaining_idxs:
+            other_x1, other_y1, other_x2, other_y2 = x1[j], y1[j], x2[j], y2[j]
+            other_area = areas[j]
+            
+            # Check if smaller box is completely contained in larger box
+            # (containment check: if smaller box is inside larger box)
+            is_contained = (curr_x1 <= other_x1 and curr_y1 <= other_y1 and 
+                          curr_x2 >= other_x2 and curr_y2 >= other_y2)
+            
+            # Check if larger box is completely contained in smaller box (reverse)
+            is_reverse_contained = (other_x1 <= curr_x1 and other_y1 <= curr_y1 and 
+                                  other_x2 >= curr_x2 and other_y2 >= curr_y2)
+            
+            # If one box contains the other, remove the smaller one
+            if is_contained or is_reverse_contained:
+                to_remove.append(j)
+                continue
+            
+            # Calculate IoU for overlapping boxes
+            xx1 = max(curr_x1, other_x1)
+            yy1 = max(curr_y1, other_y1)
+            xx2 = min(curr_x2, other_x2)
+            yy2 = min(curr_y2, other_y2)
+            
+            w = max(0, xx2 - xx1 + 1)
+            h = max(0, yy2 - yy1 + 1)
+            intersection = w * h
+            union = curr_area + other_area - intersection
+            iou = intersection / (union + 1e-6)
+            
+            # Remove if IoU is high (overlapping significantly)
+            if iou > iou_threshold:
+                to_remove.append(j)
         
-        # Delete indexes with high IoU (overlapping boxes)
-        idxs = np.delete(idxs, np.concatenate(
-            ([last], np.where(iou > iou_threshold)[0])
-        ))
+        # Remove processed and overlapping boxes
+        idxs = np.array([idx for idx in idxs if idx != i and idx not in to_remove])
     
     # Convert back to (x, y, w, h)
     filtered_bboxes = [
