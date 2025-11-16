@@ -173,18 +173,53 @@ class UnifiedPipeline:
                 
                 # Transform and classify
                 try:
+                    # First, classify once to check if it's a digit or shape
                     crop_tensor = self.transform(crop).unsqueeze(0).to(self.device)
                     output = self.classifier(crop_tensor)
                     probs = torch.softmax(output, dim=1)
+                    conf_first, pred_first = probs.max(1)
+                    pred_class_id_first = pred_first.item()
                     
-                    conf, pred = probs.max(1)
-                    pred_class_id = pred.item()
+                    # Only apply TTA (rotation) for shapes (class_id >= 10)
+                    # Digits (0-9) don't need TTA to avoid misclassification
+                    if pred_class_id_first >= 10:
+                        # It's likely a shape - use TTA with rotations
+                        crops_to_test = [crop]
+                        
+                        # Add slight rotations (±5°, ±10°) for better classification
+                        # Especially helps with perfectly aligned squares
+                        for angle in [5, -5, 10, -10]:
+                            # Rotate image
+                            center = (crop.shape[1] // 2, crop.shape[0] // 2)
+                            M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                            rotated = cv2.warpAffine(crop, M, (crop.shape[1], crop.shape[0]), 
+                                                     borderValue=255)
+                            crops_to_test.append(rotated)
+                        
+                        # Classify all variations and take average
+                        all_probs = [probs]  # Include first prediction
+                        for test_crop in crops_to_test[1:]:  # Skip first (already classified)
+                            crop_tensor = self.transform(test_crop).unsqueeze(0).to(self.device)
+                            output = self.classifier(crop_tensor)
+                            probs_rot = torch.softmax(output, dim=1)
+                            all_probs.append(probs_rot)
+                        
+                        # Average probabilities across all augmentations
+                        avg_probs = torch.stack(all_probs).mean(dim=0)
+                        conf, pred = avg_probs.max(1)
+                        pred_class_id = pred.item()
+                        confidence = conf.item()
+                    else:
+                        # It's a digit - use original prediction without TTA
+                        conf, pred = probs.max(1)
+                        pred_class_id = pred.item()
+                        confidence = conf.item()
                     
                     # Filter based on target_classes
                     if self._should_keep_class(pred_class_id):
                         filtered_bboxes.append((x, y, w, h))
                         labels.append(self.label_mapping[pred_class_id])
-                        confidences.append(conf.item())
+                        confidences.append(confidence)
                     
                 except Exception as e:
                     print(f"Warning: Failed to classify crop at ({x},{y},{w},{h}): {e}")
@@ -362,8 +397,8 @@ def generate_synthetic_scene(mnist_dir, shapes_dir, mnist_csv,
     mnist_df = pd.read_csv(mnist_csv)
     shape_files = [f for f in os.listdir(shapes_dir) if f.endswith('.png')]
     
-    # Create white canvas
-    canvas = np.ones((canvas_size[1], canvas_size[0]), dtype=np.uint8) * 255
+    # Create white canvas (BGR color - 3 channels)
+    canvas = np.ones((canvas_size[1], canvas_size[0], 3), dtype=np.uint8) * 255
     ground_truth = []
     placed_objects = []  # List of (x, y, w, h) for overlap checking
     
@@ -381,7 +416,29 @@ def generate_synthetic_scene(mnist_dir, shapes_dir, mnist_csv,
     def place_object(img, label, is_digit=True, max_attempts=100):
         """Try to place an object without overlapping."""
         target_size = np.random.randint(60, 100) if is_digit else np.random.randint(70, 120)
-        img_resized = cv2.resize(img, (target_size, target_size))
+        
+        # Convert to BGR based on type
+        if is_digit:
+            # Digits: Keep grayscale, just convert to BGR (3 channels)
+            if len(img.shape) == 2:
+                img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else:
+                img_bgr = img.copy()
+        else:
+            # Shapes: Convert grayscale to BGR with random color
+            if len(img.shape) == 2:
+                # Grayscale image - convert to BGR with random color
+                img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                # Apply random color tint (keep grayscale but add subtle color)
+                color = np.random.randint(0, 256, 3)  # Random BGR color
+                # Blend: 70% grayscale + 30% color for natural look
+                img_bgr = cv2.addWeighted(img_bgr, 0.7, 
+                                         np.full_like(img_bgr, color, dtype=np.uint8), 0.3, 0)
+            else:
+                # Already color image - use as is
+                img_bgr = img.copy()
+        
+        img_resized = cv2.resize(img_bgr, (target_size, target_size))
         
         margin = 50
         for attempt in range(max_attempts):
@@ -390,12 +447,14 @@ def generate_synthetic_scene(mnist_dir, shapes_dir, mnist_csv,
             
             # Check overlap
             if not check_overlap(x, y, target_size, target_size, placed_objects):
-                # Place object
+                # Place object (blend with canvas for smooth appearance)
                 try:
-                    canvas[y:y+target_size, x:x+target_size] = np.minimum(
-                        canvas[y:y+target_size, x:x+target_size],
-                        img_resized
-                    )
+                    # Use alpha blending for smoother appearance
+                    roi = canvas[y:y+target_size, x:x+target_size]
+                    mask = (img_resized < 250).any(axis=2)  # Create mask for non-white pixels
+                    roi[mask] = img_resized[mask]
+                    canvas[y:y+target_size, x:x+target_size] = roi
+                    
                     placed_objects.append((x, y, target_size, target_size))
                     ground_truth.append((x, y, target_size, target_size, label))
                     return True
@@ -410,6 +469,7 @@ def generate_synthetic_scene(mnist_dir, shapes_dir, mnist_csv,
     for _ in range(num_digits):
         sample = mnist_df.sample(1).iloc[0]
         img_path = os.path.join(mnist_dir, sample['image_name'])
+        # Load as grayscale (MNIST images are grayscale)
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
@@ -420,7 +480,10 @@ def generate_synthetic_scene(mnist_dir, shapes_dir, mnist_csv,
     for _ in range(num_shapes):
         sample_file = np.random.choice(shape_files)
         img_path = os.path.join(shapes_dir, sample_file)
-        img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        # Try to load as color first, fallback to grayscale
+        img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+        if img is None:
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
         label = sample_file.split('_')[0]
