@@ -45,8 +45,24 @@ class TraditionalDetector:
         else:
             gray = image.copy()
         
-        # Preprocessing
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        # Enhanced preprocessing for real-world images
+        # 1. Denoising (remove noise)
+        denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
+        
+        # 2. Contrast enhancement (CLAHE)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(denoised)
+        
+        # 3. Illumination correction (remove uneven lighting)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+        background = cv2.morphologyEx(enhanced, cv2.MORPH_OPEN, kernel)
+        corrected = cv2.subtract(enhanced, background)
+        
+        # 4. Normalize intensity
+        normalized = cv2.normalize(corrected, None, 0, 255, cv2.NORM_MINMAX)
+        
+        # 5. Blur for threshold
+        blurred = cv2.GaussianBlur(normalized, (5, 5), 0)
         
         # Adaptive threshold
         binary = cv2.adaptiveThreshold(

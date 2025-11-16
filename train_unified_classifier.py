@@ -17,6 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from PIL import Image
+import cv2
 from sklearn.model_selection import train_test_split
 
 # ============================================================================
@@ -95,6 +96,17 @@ class UnifiedDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data_list[idx]
         image = Image.open(item['path']).convert('L')
+        
+        # Apply preprocessing (CLAHE for contrast enhancement)
+        # Convert PIL to numpy for OpenCV processing
+        img_array = np.array(image)
+        
+        # Apply CLAHE for better contrast (especially for real-world images)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
+        img_enhanced = clahe.apply(img_array)
+        
+        # Convert back to PIL
+        image = Image.fromarray(img_enhanced)
         
         if self.transform:
             image = self.transform(image)
@@ -209,14 +221,15 @@ def main(args):
     # Data Splits & Transforms
     # ========================================
     
-    # Transforms: Grayscale → RGB, Resize to 128x128 with stronger augmentation
+    # Transforms: Grayscale → RGB, Resize to 128x128 with balanced augmentation
+    # Reduced perspective distortion to preserve shape details (especially for Nonagon/Octagon)
     train_transform = transforms.Compose([
         transforms.Resize((Config.INPUT_SIZE, Config.INPUT_SIZE)),
         transforms.Grayscale(num_output_channels=3),
-        transforms.RandomRotation(30),  # Increased from 15
-        transforms.RandomAffine(degrees=0, translate=(0.15, 0.15)),  # Increased from 0.1
-        transforms.RandomPerspective(distortion_scale=0.2, p=0.5),  # Added perspective transform
-        transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Added color jitter
+        transforms.RandomRotation(30),  # Keep rotation for robustness
+        transforms.RandomAffine(degrees=0, translate=(0.15, 0.15)),  # Translation OK
+        transforms.RandomPerspective(distortion_scale=0.1, p=0.3),  # REDUCED: was 0.2/0.5, now 0.1/0.3 to preserve shape edges
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),  # REDUCED: was 0.3, now 0.2 to preserve contrast
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                            std=[0.229, 0.224, 0.225])

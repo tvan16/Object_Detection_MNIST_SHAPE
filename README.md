@@ -6,7 +6,331 @@ Hệ thống nhận diện chữ số viết tay và hình học trong ảnh s�
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 📖 Mô tả
+## 📖 Giới thiệu dự án
+
+### Tổng quan
+
+Dự án **Unified Digits & Shapes Recognition System** là một hệ thống nhận diện đối tượng hoàn chỉnh, có khả năng phát hiện và phân loại đồng thời **chữ số viết tay** (0-9) và **hình học** (9 loại) trong cùng một ảnh. Hệ thống sử dụng kiến trúc **hai giai đoạn** (Two-Stage): **Detection** để tìm vị trí các đối tượng, sau đó **Classification** để nhận diện loại của từng đối tượng.
+
+### Mục tiêu
+
+- 🎯 Xây dựng một mô hình thống nhất có thể nhận diện cả chữ số và hình học trong cùng một pipeline
+- 🎯 Đạt độ chính xác cao (>99%) trên cả hai loại đối tượng
+- 🎯 Tối ưu tốc độ inference để có thể áp dụng trong thực tế
+- 🎯 Hỗ trợ nhiều phương pháp detection linh hoạt (Traditional CV, CRAFT, Hybrid)
+- 🎯 Tích hợp MQTT để xử lý real-time từ frontend
+
+### Ứng dụng thực tế
+
+- 📝 **Nhận diện chữ số viết tay**: Đọc số từ biểu mẫu, hóa đơn, chứng từ
+- 🔷 **Phân loại hình học**: Phân tích hình dạng trong ảnh kỹ thuật, bản vẽ
+- 🎓 **Giáo dục**: Hỗ trợ học sinh nhận diện số và hình học
+- 🏭 **Tự động hóa**: Xử lý ảnh trong dây chuyền sản xuất
+- 📱 **Mobile Apps**: Tích hợp vào ứng dụng di động để nhận diện real-time
+
+## 🏗️ Kiến trúc hệ thống
+
+### Pipeline tổng quan
+
+```
+┌─────────────┐
+│ Input Image │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────┐
+│   Stage 1: Object Detection     │
+│   ┌──────────────────────────┐  │
+│   │ Traditional CV Detector  │  │
+│   │ (Contour-based)          │  │
+│   └──────────────────────────┘  │
+│   ┌──────────────────────────┐  │
+│   │ CRAFT Detector           │  │
+│   │ (Text/Character)         │  │
+│   └──────────────────────────┘  │
+│   ┌──────────────────────────┐  │
+│   │ Hybrid Detector          │  │
+│   │ (CV + CRAFT combined)    │  │
+│   └──────────────────────────┘  │
+└──────┬──────────────────────────┘
+       │ Bounding Boxes (x, y, w, h)
+       ▼
+┌─────────────────────────────────┐
+│   Stage 2: Classification       │
+│   ┌──────────────────────────┐  │
+│   │ EfficientNet-B0          │  │
+│   │ (19 classes)             │  │
+│   │ - 10 digits (0-9)        │  │
+│   │ - 9 shapes               │  │
+│   └──────────────────────────┘  │
+└──────┬──────────────────────────┘
+       │ Labels + Confidences
+       ▼
+┌─────────────────────────────────┐
+│   Stage 3: Post-processing      │
+│   - Filter by target (digits/  │
+│     shapes/all)                 │
+│   - Sort by reading order       │
+│   - Visualize annotations       │
+└──────┬──────────────────────────┘
+       ▼
+┌─────────────────────────────────┐
+│   Output:                        │
+│   - Annotated Image (PNG)       │
+│   - JSON Results                 │
+└─────────────────────────────────┘
+```
+
+### Các thành phần chính
+
+#### 1. **Detection Module** (`detect_objects.py`)
+
+**Traditional CV Detector:**
+- Sử dụng OpenCV để tìm contours
+- Preprocessing: Denoising, CLAHE, Illumination correction
+- Adaptive thresholding để tách foreground/background
+- Filter theo area, aspect ratio để loại bỏ noise
+
+**CRAFT Detector:**
+- Deep learning model để detect text/characters
+- Pre-trained trên MLT dataset (25k images)
+- Tốt cho việc detect chữ số và ký tự
+
+**Hybrid Detector:**
+- Kết hợp Traditional CV + CRAFT
+- CRAFT detect digits, Traditional CV detect shapes
+- Merge và deduplicate kết quả
+- Tối ưu cho ảnh có cả digits và shapes
+
+#### 2. **Classification Module** (`train_unified_classifier.py`)
+
+**Model Architecture:**
+- **Backbone**: EfficientNet-B0 (pre-trained trên ImageNet)
+- **Input**: 128x128 RGB images (grayscale converted)
+- **Output**: 19 classes (10 digits + 9 shapes)
+- **Augmentation**: Rotation, Affine, Perspective, ColorJitter (balanced để giữ shape edges)
+
+**Training Process:**
+- Dataset: ~100,000 images (MNIST + Shapes)
+- Epochs: 20
+- Optimizer: Adam (lr=1e-4)
+- Loss: CrossEntropy
+- Validation accuracy: ~99.14%
+
+#### 3. **Pipeline Module** (`pipeline.py`)
+
+**Chức năng:**
+- Kết hợp Detection + Classification
+- Filter theo target classes (digits/shapes/all)
+- Sort detections theo reading order (top-to-bottom, left-to-right)
+- Visualize với bounding boxes và labels
+- Generate synthetic test images
+- MQTT integration cho real-time processing
+
+#### 4. **MQTT Integration**
+
+**Topics:**
+- `image/create`: Request generate ảnh synthetic
+- `image/input/create`: Response với ảnh đã generate
+- `image/input`: Request xử lý ảnh
+- `image/output`: Response với kết quả detection
+
+**Flow:**
+```
+Frontend → image/create → AI generate → image/input/create → Frontend
+Frontend → image/input → AI process → image/output → Frontend
+```
+
+## 🔬 Công nghệ và phương pháp
+
+### Deep Learning
+
+- **EfficientNet-B0**: CNN architecture tối ưu về accuracy/efficiency
+- **Transfer Learning**: Pre-trained trên ImageNet, fine-tune trên custom dataset
+- **Data Augmentation**: Tăng diversity của training data
+
+### Computer Vision
+
+- **Contour Detection**: Tìm boundaries của objects
+- **Adaptive Thresholding**: Tự động điều chỉnh threshold theo local regions
+- **CLAHE**: Contrast Limited Adaptive Histogram Equalization
+- **Morphological Operations**: Làm sạch và tách objects
+
+### Text Detection
+
+- **CRAFT**: Character Region Awareness For Text detection
+- **Region Proposal**: Tìm regions có khả năng chứa text
+- **Link Prediction**: Kết nối các characters thành words
+
+### Preprocessing
+
+- **Denoising**: Loại bỏ noise trong ảnh
+- **Contrast Enhancement**: Tăng độ tương phản
+- **Illumination Correction**: Chuẩn hóa ánh sáng
+- **Normalization**: Chuẩn hóa pixel values
+
+## 📊 Dataset
+
+### MNIST Digits
+- **Số lượng**: 60,000 training images
+- **Format**: 28x28 grayscale
+- **Classes**: 10 (0-9)
+- **Source**: MNIST Competition dataset
+
+### Shapes Dataset
+- **Số lượng**: ~90,000 images
+- **Format**: Various sizes, grayscale
+- **Classes**: 9 (Circle, Triangle, Square, Pentagon, Hexagon, Heptagon, Octagon, Nonagon, Star)
+- **Generation**: Synthetic với random transformations
+
+### Training Strategy
+- **Balanced Sampling**: 67% shapes để balance với MNIST
+- **Train/Val Split**: 85/15 với stratification
+- **Total Training**: ~100,000 images
+- **Total Validation**: ~18,000 images
+
+## 🎯 Tính năng nổi bật
+
+### 1. Unified Classification
+- ✅ Một model duy nhất cho 19 classes
+- ✅ Không cần separate models cho digits và shapes
+- ✅ Dễ maintain và deploy
+
+### 2. Flexible Detection
+- ✅ **Traditional CV**: Nhanh, tốt cho shapes
+- ✅ **CRAFT**: Tốt cho digits và text
+- ✅ **Hybrid**: Tối ưu cho cả hai
+
+### 3. Target Filtering
+- ✅ Chỉ detect digits: `--target digits`
+- ✅ Chỉ detect shapes: `--target shapes`
+- ✅ Detect cả hai: `--target all`
+
+### 4. Synthetic Data Generation
+- ✅ Tự động tạo test images
+- ✅ Control số lượng digits và shapes
+- ✅ Không overlap giữa các objects
+- ✅ Ground truth labels
+
+### 5. MQTT Real-time Processing
+- ✅ Nhận ảnh từ frontend qua MQTT
+- ✅ Xử lý và trả kết quả real-time
+- ✅ Base64 encoding cho images
+- ✅ JSON format cho results
+
+### 6. Reading Order Sorting
+- ✅ Sort detections theo thứ tự đọc tự nhiên
+- ✅ Top-to-bottom, left-to-right
+- ✅ Group objects vào rows
+
+## 📈 Kết quả và Performance
+
+### Classification Accuracy
+
+| Category | Training | Validation | Notes |
+|----------|----------|------------|-------|
+| **Overall** | 99.3% | **99.14%** | 19 classes combined |
+| **Digits (0-9)** | 99.5% | 99.3% | High accuracy |
+| **Shapes** | 99.0% | 98.5% | Good, some confusion Circle/Nonagon |
+| **Best Class** | - | 99.90% | Digit "1", Triangle |
+| **Worst Class** | - | 94.69% | Nonagon (confused with Circle) |
+
+### Per-Class Performance
+
+**Top Performers:**
+- Digit "1": 99.90%
+- Digit "8": 99.89%
+- Triangle: 99.90%
+- Star: 99.70%
+
+**Challenging Classes:**
+- Nonagon: 94.69% (confused with Circle ~4%)
+- Octagon: 97.96% (confused with Circle ~0.78%)
+
+### Inference Speed
+
+| Component | Time (ms) | Notes |
+|-----------|-----------|-------|
+| **Detection (Traditional)** | 50-100 | Fast, CPU-friendly |
+| **Detection (CRAFT)** | 100-200 | Slower, requires GPU |
+| **Detection (Hybrid)** | 150-250 | Combines both |
+| **Classification (per object)** | 5-10 | EfficientNet-B0 |
+| **Total (5 objects)** | 100-300 | End-to-end |
+
+*Tested on RTX 4050 Laptop GPU*
+
+### Model Size
+
+- **EfficientNet-B0**: ~5.3M parameters
+- **Model weights**: ~20MB (.pth file)
+- **CRAFT weights**: ~85MB
+- **Total**: ~105MB
+
+## 🔄 Flow hoạt động chi tiết
+
+### 1. Training Flow
+
+```
+Load Datasets (MNIST + Shapes)
+    ↓
+Create Label Mapping (0-18)
+    ↓
+Split Train/Val (85/15)
+    ↓
+Apply Augmentation
+    ↓
+Train EfficientNet-B0
+    ↓
+Validate & Save Best Model
+    ↓
+Evaluate Performance
+```
+
+### 2. Inference Flow
+
+```
+Input Image
+    ↓
+Preprocessing (Denoise, CLAHE, etc.)
+    ↓
+Detection (Traditional/CRAFT/Hybrid)
+    ↓
+Crop Bounding Boxes
+    ↓
+Resize to 128x128
+    ↓
+Classification (EfficientNet-B0)
+    ↓
+Filter by Target Classes
+    ↓
+Sort by Reading Order
+    ↓
+Visualize & Output JSON
+```
+
+### 3. MQTT Flow
+
+```
+Frontend → image/create (numberDigit, numberShape)
+    ↓
+AI: Generate Synthetic Image
+    ↓
+AI → image/input/create (image base64 + count)
+    ↓
+Frontend: Display Image
+    ↓
+User: Click "Process"
+    ↓
+Frontend → image/input (image base64 + label + count)
+    ↓
+AI: Detect & Classify (Auto Hybrid if count exists)
+    ↓
+AI → image/output (image base64 + detections JSON)
+    ↓
+Frontend: Display Results
+```
+
+## 📖 Mô tả chi tiết
 
 Dự án này xây dựng một hệ thống hoàn chỉnh để nhận diện và phân loại:
 - **10 chữ số**: 0-9 (từ MNIST dataset)
@@ -25,6 +349,8 @@ Input Image → Detection (Traditional CV/CRAFT) → Classification (EfficientNe
 - ✅ **Inference nhanh**: ~100-300ms/ảnh
 - ✅ **Linh hoạt**: Hỗ trợ nhiều phương pháp detection
 - ✅ **Dễ sử dụng**: API đơn giản và rõ ràng
+- ✅ **MQTT Integration**: Real-time processing với frontend
+- ✅ **Synthetic Data Generation**: Tự động tạo test images
 
 ## 🚀 Cài đặt
 

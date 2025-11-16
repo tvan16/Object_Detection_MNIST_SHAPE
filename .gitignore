@@ -1,16 +1,52 @@
 # ============================================================================
-# Python
+# Ignore everything by default
+# ============================================================================
+*
+
+# ============================================================================
+# Unignore: Git essentials
+# ============================================================================
+!.gitignore
+!.git/
+
+# ============================================================================
+# Unignore: Files & Folders to PUSH
 # ============================================================================
 
-# Byte-compiled / optimized / DLL files
+# Core Python files
+!detect_objects.py
+!evaluate_model.py
+!pipeline.py
+!train_unified_classifier.py
+!train_unified_classifier.ipynb
+
+# Documentation
+!README.md
+!requirements.txt
+
+# Test images (specific ones)
+!Sample.png
+!Test_1.png
+
+# Folders to push
+!craft_repo/
+!craft_repo/**
+!dataset/
+!dataset/**
+
+# Weights: Only push .zip files, ignore .pth files
+!weights/
+!weights/*.zip
+# Explicitly ignore .pth files (must come after unignore)
+weights/*.pth
+
+# ============================================================================
+# Python
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -43,13 +79,9 @@ venv.bak/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pyenv
-.python-version
-
 # ============================================================================
 # IDE & Editors
 # ============================================================================
-
 .vscode/
 .idea/
 *.swp
@@ -59,7 +91,6 @@ venv.bak/
 # ============================================================================
 # OS Files
 # ============================================================================
-
 .DS_Store
 .DS_Store?
 ._*
@@ -71,61 +102,41 @@ desktop.ini
 __MACOSX/
 
 # ============================================================================
-# MNIST Competition Dataset
+# Dataset Folders (extracted - too large)
 # ============================================================================
-
-# Ignore extracted folders (too large), keep only zip
 mnist_competition/train/
 mnist_competition/public_test/
-
-# Keep these:
-# mnist_competition.zip
-# mnist_competition/train_label.csv
-# mnist_competition/public_test.csv
-# mnist_competition/example_submission.csv
-
-# ============================================================================
-# Shapes Classifier Dataset
-# ============================================================================
-
-# Ignore dataset folder (too large), keep everything else
 Shapes_Classifier/dataset/
 
-# Keep these:
-# Shapes_Classifier/*.py
-# Shapes_Classifier/*.ipynb
-# Shapes_Classifier/README.md
-# Shapes_Classifier/requirements.txt
-# Shapes_Classifier/dataset.zip
-
 # ============================================================================
-# Output & Test Files
+# Output & Generated Files
 # ============================================================================
-
-# Generated results
 *_result.png
 *_result.json
 synthetic_test_scene*.png
 synthetic_test_scene*.json
-
-# Test images (keep Sample.png)
-Test_*.jpg
-Test_*.png
 Sample_result.png
 Sample_result.json
 Sample_shapes_only.png
 Sample_shapes_only.json
+Test_*.jpg
+Test_ChuVietTay.png
 
 # Training outputs
 training_history.png
 per_class_performance.csv
 confusion_matrix.png
+confusion_matrix_normalized.png
 evaluation_report.txt
+classification_report.csv
+
+# Model files (.pth - too large)
+*.pth
+unified_model_19classes.pth
 
 # ============================================================================
 # Temporary Files
 # ============================================================================
-
 *.tmp
 *.temp
 tmp/
@@ -133,4 +144,11 @@ temp/
 logs/
 *.log
 
-
+# ============================================================================
+# Other files to ignore
+# ============================================================================
+IMPROVEMENTS_REALWORLD.md
+MQTT_USAGE.md
+CRAFT_SHAPES_GUIDE.md
+mnist_notebook.ipynb
+label_mapping.json
