@@ -34,6 +34,10 @@
 !dataset/
 !dataset/**
 
+# Ignore Shapes_Classifier (not needed on GitHub)
+Shapes_Classifier/
+Shapes_Classifier/**
+
 # Weights: Only push .zip files, ignore .pth files
 !weights/
 !weights/*.zip
