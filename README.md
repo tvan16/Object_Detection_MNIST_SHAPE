@@ -1,16 +1,82 @@
-# 🎯 Unified Digits & Shapes Recognition System
+# BỘ KHOA HỌC VÀ CÔNG NGHỆ
 
-Hệ thống nhận diện chữ số viết tay và hình học trong ảnh sử dụng Deep Learning với kiến trúc Detection + Classification.
+## HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+---
 
-## 📖 Giới thiệu dự án
+# BÁO CÁO BÀI TẬP LỚN
 
-### Tổng quan
+**HỌC PHẦN:** XỬ LÝ ẢNH
 
-Dự án **Unified Digits & Shapes Recognition System** là một hệ thống nhận diện đối tượng hoàn chỉnh, có khả năng phát hiện và phân loại đồng thời **chữ số viết tay** (0-9) và **hình học** (9 loại) trong cùng một ảnh. Hệ thống sử dụng kiến trúc **hai giai đoạn** (Two-Stage): **Detection** để tìm vị trí các đối tượng, sau đó **Classification** để nhận diện loại của từng đối tượng.
+**Đề tài:** Nhận dạng chữ số và hình học đơn giản bằng mạng Neural
+
+**Giảng viên:** TS. Phạm Hoàng Việt
+
+**Nhóm 25:**
+- B22DCCN482 - Trịnh Quang Lâm
+- B22DCCN434 - Vũ Nhân Kiên  
+- B22DCCN889 - Vũ Thế Văn
+
+**Link sản phẩm:** [tvan16/Object_Detection_MNIST_SHAPE](https://github.com/tvan16/Object_Detection_MNIST_SHAPE)
+
+**Hà Nội, 11/2025**
+
+---
+
+## 📋 MỤC LỤC
+
+1. [Giới thiệu](#1-giới-thiệu)
+2. [Bối cảnh & Tầm quan trọng](#2-bối-cảnh--tầm-quan-trọng)
+3. [Động lực chọn MNIST mở rộng](#3-động-lực-chọn-mnist-mở-rộng)
+4. [Mục tiêu nghiên cứu](#4-mục-tiêu-nghiên-cứu)
+5. [Phạm vi thực hiện](#5-phạm-vi-thực-hiện)
+6. [Tổng quan nghiên cứu & Công nghệ](#6-tổng-quan-nghiên-cứu--công-nghệ)
+7. [Augmentation & Tiền xử lý](#7-augmentation--tiền-xử-lý)
+8. [Kiến trúc mô hình & Công nghệ huấn luyện](#8-kiến-trúc-mô-hình--công-nghệ-huấn-luyện)
+9. [Mô tả tập dữ liệu](#9-mô-tả-tập-dữ-liệu)
+10. [Thực nghiệm](#10-thực-nghiệm)
+11. [Ứng dụng & Triển khai](#11-ứng-dụng--triển-khai)
+12. [Hướng cải thiện](#12-hướng-cải-thiện)
+13. [Kết luận](#13-kết-luận)
+14. [Tài liệu tham khảo](#14-tài-liệu-tham-khảo)
+
+---
+
+## 1. GIỚI THIỆU
+
+Dự án **"Unified Digits & Shapes Recognition System"** là một hệ thống nhận diện đối tượng hoàn chỉnh, có khả năng phát hiện và phân loại đồng thời **chữ số viết tay** (0-9) và **hình học** (9 loại) trong cùng một ảnh. Hệ thống sử dụng kiến trúc **hai giai đoạn** (Two-Stage): **Detection** để tìm vị trí các đối tượng, sau đó **Classification** để nhận diện loại của từng đối tượng.
+
+## 2. BỐI CẢNH & TẦM QUAN TRỌNG
+
+Trong bối cảnh làn sóng ứng dụng thị giác máy tính đang lan rộng sang nhiều lĩnh vực như xe tự hành, sản xuất thông minh và công nghệ giáo dục, yêu cầu về những mô hình vừa nhẹ vừa chính xác trở nên cấp thiết hơn bao giờ hết. Các hệ thống triển khai trong môi trường thực, đặc biệt trên thiết bị nhúng hoặc biên, thường bị giới hạn tài nguyên tính toán nên không thể sử dụng các kiến trúc quá cồng kềnh, trong khi vẫn phải đảm bảo độ tin cậy đủ cao cho các tác vụ nhận dạng và quyết định tự động. Điều này đặt ra nhu cầu nghiên cứu các mô hình tối giản nhưng hiệu quả, có khả năng cân bằng giữa độ phức tạp, hiệu năng và khả năng triển khai.
+
+Tập dữ liệu MNIST truyền thống từ lâu đã được xem như chuẩn mực cơ bản để đánh giá các thuật toán nhận dạng chữ số viết tay. Tuy nhiên, bài toán gốc chỉ dừng lại ở việc phân loại các chữ số đơn lẻ, trên nền ảnh đơn giản, nên chưa phản ánh đầy đủ những thách thức của các kịch bản thị giác máy tính ngoài đời thực, nơi mô hình cần xử lý nhiều đối tượng, bố cục phức tạp và các mối quan hệ không gian – hình học giữa các thành phần trong ảnh. Do đó, MNIST ở dạng nguyên bản không còn đủ để đánh giá năng lực của các kiến trúc hiện đại vốn hướng tới ứng dụng trong môi trường động, đa đối tượng.
+
+Trong bối cảnh giáo dục và sáng tạo số, thị giác máy tính được sử dụng cho nhiều nhiệm vụ như theo dõi mức độ tương tác của người học, hỗ trợ học tập cá nhân hóa, xây dựng lớp học thông minh hay tạo nội dung học liệu trực quan. Những hệ thống như vậy thường phải xử lý các cảnh phức tạp với nhiều biểu tượng, vật thể học tập hoặc tương tác của người học trong không gian lớp học vật lý hoặc ảo. Vì vậy, việc mở rộng bài toán từ nhận dạng chữ số đơn lẻ sang phát hiện và định vị nhiều đối tượng trong một khung hình có ý nghĩa thiết thực, giúp mô hình tiến gần hơn với các bài toán thực tế của EdTech.
+
+Một hướng nghiên cứu quan trọng là thiết kế các biến thể mở rộng của MNIST, trong đó các chữ số được kết hợp, sắp xếp theo cấu trúc hình học hoặc đặt trong những bố cục đa đối tượng, nhằm mô phỏng các tình huống chiến lược trong môi trường giáo dục và sáng tạo. Các tập dữ liệu như vậy cho phép đánh giá khả năng của mô hình trong việc phát hiện, phân tách và hiểu quan hệ giữa các đối tượng, đồng thời vẫn duy trì kích thước dữ liệu vừa phải để phù hợp cho việc thử nghiệm các kiến trúc nhẹ. Nhờ đó, người nghiên cứu có thể khảo sát sâu hơn cách tối ưu mạng nơ-ron cho những hệ thống thị giác máy tính áp dụng trong lớp học thông minh, trò chơi giáo dục hay công cụ hỗ trợ sáng tạo, nơi ràng buộc về tài nguyên và độ trễ là những yếu tố then chốt.
+
+## 3. ĐỘNG LỰC CHỌN MNIST MỞ RỘNG
+
+Việc lựa chọn MNIST làm nền tảng để mở rộng xuất phát từ chính tính biểu tượng của bộ dữ liệu này trong cộng đồng học máy và thị giác máy tính. MNIST đã được nghiên cứu rất kỹ, có tài liệu phong phú và nhiều ví dụ mã nguồn, nên việc tái lập thí nghiệm, so sánh mô hình và đánh giá cải tiến trở nên thuận lợi, đặc biệt cho mục đích giảng dạy và thử nghiệm nhanh các ý tưởng mới. Nhờ đó, mọi thay đổi trên MNIST mở rộng đều có thể đặt trong bối cảnh một chuẩn tham chiếu quen thuộc, giúp kết quả nghiên cứu dễ diễn giải và chia sẻ với cộng đồng.
+
+Bên cạnh đó, cấu trúc ảnh đơn giản (thang xám 28×28) cho phép dễ dàng tùy biến để kết hợp chữ số với các hình dạng hình học như đường thẳng, hình tròn, hình đa giác, hoặc sắp xếp nhiều chữ số trong cùng một khung hình, tạo nên các "mini real-world" mô phỏng bảng điểm, ô bài tập hoặc giao diện trò chơi cho học sinh. Những bố cục này giúp chuyển bài toán từ phân loại đơn đối tượng sang phát hiện, định vị và hiểu quan hệ không gian giữa nhiều đối tượng, gần hơn với các kịch bản EdTech và game hóa học tập.
+
+Một ưu điểm quan trọng khác là MNIST cho phép kiểm soát dữ liệu ở mức cao, từ đó có thể chủ động đưa vào các dạng nhiễu, chồng chéo đối tượng, biến đổi affine (quay, tịnh tiến, co giãn, biến dạng phối cảnh) hay thay đổi độ tương phản và độ sáng. Khả năng kiểm soát này giúp xây dựng các bộ dữ liệu "có chủ đích", trong đó từng yếu tố khó khăn được gia tăng có kế hoạch để đánh giá độ bền vững của mô hình, đo lường khả năng khái quát hóa trong điều kiện gần với thế giới thực nhưng vẫn an toàn, rẻ và dễ triển khai trong môi trường giáo dục.
+
+## 4. MỤC TIÊU NGHIÊN CỨU
+
+Nghiên cứu hướng tới xây dựng một pipeline thống nhất cho bài toán MNIST mở rộng, bao trùm toàn bộ các bước từ tiền xử lý dữ liệu, tạo mẫu đến huấn luyện và suy luận, với khả năng phát hiện đồng thời cả chữ số và các hình dạng hình học trong cùng một khung hình. Pipeline này được thiết kế sao cho có thể áp dụng lại dễ dàng cho các biến thể dữ liệu khác nhau, nhưng vẫn giữ cách tổ chức rõ ràng giữa các khối chức năng như tạo dữ liệu, huấn luyện mô hình và đánh giá kết quả. Một mục tiêu quan trọng là duy trì sự cân bằng hợp lý giữa độ chính xác và tốc độ, nhằm đảm bảo mô hình không chỉ đạt hiệu năng nhận dạng tốt trên bộ dữ liệu MNIST mở rộng mà còn có độ trễ thấp, phù hợp với yêu cầu triển khai trong các hệ thống thực tế như ứng dụng giáo dục tương tác hoặc trò chơi học tập. Trong bối cảnh tài nguyên tính toán bị giới hạn trên thiết bị biên, việc tối ưu mô hình và pipeline để đạt được sự đánh đổi hiệu quả giữa chi phí tính toán và chất lượng dự đoán là tiêu chí then chốt.
+
+Bên cạnh đó, nghiên cứu đặt mục tiêu cung cấp bộ công cụ có khả năng tái lập cao dưới dạng script và notebook, cho phép người dùng dễ dàng tải dữ liệu, huấn luyện lại mô hình, điều chỉnh siêu tham số và đánh giá kết quả. Các tài liệu và mã nguồn đi kèm được tổ chức theo hướng thân thiện với cộng đồng, giúp sinh viên, nhà nghiên cứu hoặc nhà phát triển có thể nhanh chóng mở rộng, so sánh và tích hợp pipeline này vào những bài toán thị giác máy tính khác nhau trong môi trường giáo dục và sáng tạo.
+
+## 5. PHẠM VI THỰC HIỆN
+
+Trong khuôn khổ nghiên cứu này, dữ liệu đầu vào được nhóm tự sinh và tái cấu trúc, được quản lý tập trung trong thư mục dataset/, nhằm đảm bảo khả năng kiểm soát tốt quá trình tạo mẫu, gắn nhãn và tái lập thí nghiệm. Cách tiếp cận này giúp dễ dàng điều chỉnh các tham số sinh dữ liệu như phân bố vị trí, mức nhiễu hay mật độ đối tượng, đồng thời thuận lợi cho việc chia tách tập huấn luyện, kiểm thử và đánh giá.
+
+Đề tài chỉ tập trung vào các hình dạng hình học cơ bản như hình tròn, tam giác, hình vuông (và một số biến thể đơn giản nếu có) cùng với các chữ số 0–9, qua đó giữ cho không gian lớp nhãn đủ đơn giản để phân tích nhưng vẫn đủ đa dạng để mô phỏng các kịch bản đa đối tượng. Việc giới hạn này giúp làm rõ tác động của thiết kế mô hình và pipeline lên bài toán phát hiện kết hợp shape + digit, tránh bị nhiễu bởi quá nhiều loại đối tượng khác nhau.
+
+Về mặt triển khai, nghiên cứu giả định môi trường tính toán là các GPU phổ thông thường gặp trong phòng lab hoặc máy trạm, không đi sâu vào các tối ưu hóa phần cứng chuyên biệt cho IoT hoặc thiết bị edge. Những vấn đề như nén mô hình cực mạnh, triển khai trên vi điều khiển, hoặc tích hợp với hệ thống nhúng chỉ được đề cập ở mức định hướng tương lai, nhằm giữ phạm vi thực hiện phù hợp với nguồn lực và mục tiêu đánh giá mô hình trong bối cảnh học thuật.
 
 ### Mục tiêu
 
@@ -168,6 +234,747 @@ Frontend → image/input → AI process → image/output → Frontend
 - **Contrast Enhancement**: Tăng độ tương phản
 - **Illumination Correction**: Chuẩn hóa ánh sáng
 - **Normalization**: Chuẩn hóa pixel values
+
+---
+
+## 📚 CHI TIẾT KỸ THUẬT VÀ GIẢI THÍCH
+
+### 1. TẠI SAO DÙNG PRETRAINED MODEL? PRETRAINED MODEL CÓ GÌ ĐẶC BIỆT?
+
+#### 1.1. Lý do sử dụng Pretrained Model
+
+**Transfer Learning - Học chuyển giao:**
+- **Định nghĩa**: Sử dụng kiến thức đã học từ một task lớn (ImageNet) để áp dụng vào task mới (nhận diện digits/shapes)
+- **Lợi ích**:
+  1. **Tiết kiệm thời gian training**: Thay vì train từ đầu (cần hàng triệu ảnh và hàng tuần), chỉ cần fine-tune vài giờ
+  2. **Cần ít dữ liệu hơn**: Với pretrained model, chỉ cần ~100K ảnh thay vì hàng triệu ảnh
+  3. **Đạt accuracy cao hơn**: Model đã học được các features cơ bản (edges, textures, shapes) từ ImageNet
+  4. **Tránh overfitting**: Với dataset nhỏ, train từ đầu dễ bị overfitting
+
+**So sánh:**
+```
+Train từ đầu:  100K ảnh → Accuracy ~85-90% (cần nhiều epochs)
+Pretrained:    100K ảnh → Accuracy ~99% (chỉ cần 20 epochs)
+```
+
+#### 1.2. EfficientNet-B0 Pretrained trên ImageNet - Đặc điểm gì?
+
+**ImageNet Dataset:**
+- **Quy mô**: 1.2 triệu ảnh, 1000 classes
+- **Đa dạng**: Động vật, đồ vật, thực phẩm, phương tiện, v.v.
+- **Chất lượng**: Được label cẩn thận, đa dạng về góc chụp, ánh sáng, background
+
+**EfficientNet-B0 Architecture:**
+- **Compound Scaling**: Tối ưu đồng thời depth, width, và resolution
+- **MobileNetV2 blocks**: Depthwise separable convolutions (hiệu quả hơn)
+- **Squeeze-and-Excitation**: Attention mechanism để tập trung vào features quan trọng
+- **Swish activation**: f(x) = x * sigmoid(x) - tốt hơn ReLU
+
+**Features đã học được từ ImageNet:**
+1. **Low-level features** (tầng đầu):
+   - Edge detection (phát hiện cạnh)
+   - Texture patterns (mẫu kết cấu)
+   - Color blobs (vùng màu)
+   
+2. **Mid-level features** (tầng giữa):
+   - Shapes và contours (hình dạng và đường viền)
+   - Parts of objects (bộ phận đối tượng)
+   - Spatial relationships (mối quan hệ không gian)
+
+3. **High-level features** (tầng cuối):
+   - Object recognition (nhận diện đối tượng)
+   - Scene understanding (hiểu cảnh)
+
+**Tại sao phù hợp với digits/shapes?**
+- Digits và shapes cũng là **objects** với **edges, contours, shapes**
+- Model đã biết cách nhận diện **geometric patterns** từ ImageNet
+- Chỉ cần fine-tune classifier layer để phân biệt 19 classes cụ thể
+
+#### 1.3. Fine-tuning Process
+
+**Cách fine-tune:**
+```python
+# 1. Load pretrained weights
+model = efficientnet_b0(weights=EfficientNet_B0_Weights.IMAGENET1K_V1)
+
+# 2. Thay đổi classifier layer (từ 1000 classes → 19 classes)
+num_features = model.classifier[1].in_features  # 1280 features
+model.classifier[1] = nn.Linear(num_features, 19)  # 19 classes
+
+# 3. Train với learning rate nhỏ (1e-4) để không phá vỡ pretrained weights
+optimizer = optim.Adam(model.parameters(), lr=1e-4)
+```
+
+**Tại sao learning rate nhỏ?**
+- Pretrained weights đã tốt, chỉ cần điều chỉnh nhẹ
+- Learning rate lớn sẽ "xóa" kiến thức đã học từ ImageNet
+- Learning rate nhỏ giúp model học thêm features mới mà không quên cũ
+
+---
+
+### 2. CHI TIẾT VỀ CONTOUR DETECTION VÀ BOUNDING BOX
+
+#### 2.1. Quy trình Contour Detection
+
+**Bước 1: Preprocessing**
+```python
+# Convert to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Gaussian Blur để giảm noise
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+# Kernel size (5,5): cửa sổ 5x5 pixels
+# Sigma=0: tự động tính từ kernel size
+```
+**Tại sao blur?**
+- Loại bỏ noise nhỏ (pixels lỗi, artifacts)
+- Làm mịn ảnh để thresholding tốt hơn
+- Giảm false positives từ noise
+
+**Bước 2: Adaptive Thresholding**
+```python
+binary = cv2.adaptiveThreshold(
+    blurred, 255,                          # Max value
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,        # Method
+    cv2.THRESH_BINARY_INV,                 # Invert (objects = white)
+    11,                                     # Block size (11x11)
+    2                                       # C constant
+)
+```
+
+**Adaptive Threshold vs Global Threshold:**
+- **Global Threshold**: Dùng 1 giá trị cho toàn ảnh → không tốt với ánh sáng không đều
+- **Adaptive Threshold**: Tính threshold riêng cho từng vùng 11x11 pixels
+
+**Cách hoạt động:**
+1. Chia ảnh thành các block 11x11 pixels
+2. Tính mean của mỗi block
+3. Threshold = mean - C (C=2)
+4. Nếu pixel > threshold → white (255), ngược lại → black (0)
+
+**Tại sao THRESH_BINARY_INV?**
+- Objects (digits/shapes) thường tối trên nền sáng
+- Invert để objects thành white (dễ tìm contours)
+
+**Bước 3: Morphological Operations**
+```python
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+morph = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+```
+
+**Morphological Closing:**
+- **Dilation** (giãn nở) → **Erosion** (co lại)
+- **Mục đích**: Đóng các lỗ hổng nhỏ trong objects, nối các phần bị đứt
+
+**Ví dụ:**
+```
+Trước:  [1 0 1]  →  Sau:  [1 1 1]
+        [0 0 0]           [0 0 0]
+        [1 0 1]           [1 1 1]
+```
+- Đóng khoảng trống giữa các phần của chữ số "8"
+
+**Bước 4: Find Contours**
+```python
+contours, _ = cv2.findContours(
+    morph, 
+    cv2.RETR_EXTERNAL,      # Chỉ lấy contours ngoài cùng
+    cv2.CHAIN_APPROX_SIMPLE # Nén contours (chỉ giữ điểm góc)
+)
+```
+
+**RETR_EXTERNAL vs RETR_TREE:**
+- **RETR_EXTERNAL**: Chỉ lấy contours ngoài cùng (không lấy lỗ hổng bên trong)
+- **RETR_TREE**: Lấy tất cả contours (bao gồm cả lỗ hổng)
+
+**CHAIN_APPROX_SIMPLE vs CHAIN_APPROX_NONE:**
+- **SIMPLE**: Nén contours, chỉ giữ điểm góc → tiết kiệm memory
+- **NONE**: Giữ tất cả điểm → chính xác hơn nhưng tốn memory
+
+**Bước 5: Extract Bounding Boxes**
+```python
+for contour in contours:
+    area = cv2.contourArea(contour)
+    
+    # Filter by area
+    if min_area < area < max_area:
+        x, y, w, h = cv2.boundingRect(contour)
+        
+        # Filter by aspect ratio
+        aspect_ratio = w / float(h)
+        if min_ratio < aspect_ratio < max_ratio:
+            bboxes.append((x, y, w, h))
+```
+
+**cv2.boundingRect(contour):**
+- Tìm hình chữ nhật nhỏ nhất bao quanh contour
+- Trả về: (x, y, w, h)
+  - x, y: Tọa độ góc trên-trái
+  - w, h: Chiều rộng và chiều cao
+
+**Filtering:**
+- **Area filter**: Loại bỏ noise nhỏ (< min_area) và objects quá lớn (> max_area)
+- **Aspect ratio filter**: Loại bỏ objects quá dẹt hoặc quá cao (không phải digits/shapes)
+
+**Ví dụ tham số:**
+```python
+min_area = 100      # Loại bỏ noise < 100 pixels²
+max_area = 50000    # Loại bỏ objects > 50000 pixels²
+aspect_ratio = (0.3, 3.0)  # Chấp nhận width/height từ 0.3 đến 3.0
+```
+
+#### 2.2. Bounding Box Format
+
+**Format: (x, y, w, h)**
+- **x, y**: Tọa độ góc trên-trái của bounding box
+- **w, h**: Chiều rộng và chiều cao
+
+**Ví dụ:**
+```
+Image: 800x600
+Bounding box: (100, 50, 200, 150)
+→ x=100, y=50, w=200, h=150
+→ Góc trên-trái: (100, 50)
+→ Góc dưới-phải: (300, 200)
+```
+
+**Tại sao dùng (x, y, w, h) thay vì (x1, y1, x2, y2)?**
+- Dễ tính toán area: `area = w * h`
+- Dễ resize: `new_w = w * scale`
+- Chuẩn OpenCV
+
+---
+
+### 3. CHI TIẾT VỀ DATA AUGMENTATION
+
+#### 3.1. Tại sao cần Data Augmentation?
+
+**Vấn đề:**
+- Dataset có hạn (100K ảnh)
+- Model cần học được tính **invariant** (bất biến) với:
+  - Rotation (xoay)
+  - Translation (dịch chuyển)
+  - Scale (thay đổi kích thước)
+  - Lighting (ánh sáng)
+  - Perspective (góc nhìn)
+
+**Giải pháp: Data Augmentation**
+- Tạo thêm dữ liệu từ dữ liệu có sẵn
+- Tăng diversity mà không cần thu thập thêm ảnh
+- Giảm overfitting
+
+#### 3.2. Các phương pháp Augmentation được sử dụng
+
+**1. RandomRotation (30°)**
+```python
+transforms.RandomRotation(30)
+```
+**Mục đích:**
+- Model học được digits/shapes ở mọi góc xoay
+- Thực tế: Ảnh có thể bị xoay khi scan/chụp
+
+**Tại sao 30°?**
+- Quá lớn (>45°): Digits/shapes khó nhận diện
+- Quá nhỏ (<15°): Không đủ diversity
+- 30°: Cân bằng tốt
+
+**Ví dụ:**
+```
+Chữ số "6" xoay 30° → vẫn là "6"
+Hình vuông xoay 30° → thành hình thoi (vẫn nhận diện được)
+```
+
+**2. RandomAffine (Translation)**
+```python
+transforms.RandomAffine(
+    degrees=0,              # Không xoay (đã có RandomRotation)
+    translate=(0.15, 0.15), # Dịch 15% theo x và y
+    scale=(0.8, 1.2),       # Scale từ 80% đến 120%
+    shear=10                # Shear 10°
+)
+```
+
+**Translation (0.15, 0.15):**
+- Dịch chuyển object 15% theo chiều ngang và dọc
+- Mục đích: Model học được object ở mọi vị trí trong ảnh
+
+**Scale (0.8, 1.2):**
+- Thay đổi kích thước từ 80% đến 120%
+- Mục đích: Model học được object ở mọi kích thước
+
+**Shear (10°):**
+- Biến dạng hình học (nghiêng)
+- Mục đích: Mô phỏng góc chụp nghiêng
+
+**3. RandomPerspective**
+```python
+transforms.RandomPerspective(distortion_scale=0.2, p=0.5)
+```
+
+**Perspective Transformation:**
+- Mô phỏng góc nhìn 3D (như nhìn từ góc nghiêng)
+- distortion_scale=0.2: Độ biến dạng 20%
+- p=0.5: Chỉ áp dụng 50% ảnh (không quá mạnh)
+
+**Ví dụ:**
+```
+Hình vuông nhìn từ trên → Hình thang (perspective)
+```
+
+**4. ColorJitter**
+```python
+transforms.ColorJitter(brightness=0.3, contrast=0.3)
+```
+
+**Brightness (0.3):**
+- Thay đổi độ sáng ±30%
+- Mục đích: Model học được với mọi điều kiện ánh sáng
+
+**Contrast (0.3):**
+- Thay đổi độ tương phản ±30%
+- Mục đích: Model học được với mọi độ tương phản
+
+**Tại sao không dùng Saturation/Hue?**
+- Digits/shapes là grayscale → không cần
+- Chỉ cần brightness và contrast
+
+**5. Resize (128x128)**
+```python
+transforms.Resize((128, 128))
+```
+
+**Tại sao 128x128?**
+- **Tăng từ 64x64**: Để phân biệt tốt hơn các shapes có nhiều cạnh (Nonagon, Octagon)
+- **Không quá lớn**: 128x128 đủ để nhận diện, không tốn quá nhiều memory
+- **EfficientNet-B0**: Input size mặc định 224x224, nhưng 128x128 vẫn hoạt động tốt
+
+**6. Grayscale → RGB**
+```python
+transforms.Grayscale(num_output_channels=3)
+```
+
+**Tại sao convert grayscale → RGB?**
+- EfficientNet-B0 pretrained trên ImageNet (RGB 3 channels)
+- Input phải có 3 channels để sử dụng pretrained weights
+- Copy grayscale vào 3 channels: R=G=B
+
+**7. Normalization**
+```python
+transforms.Normalize(
+    mean=[0.485, 0.456, 0.406],  # ImageNet mean
+    std=[0.229, 0.224, 0.225]    # ImageNet std
+)
+```
+
+**Tại sao normalize?**
+- Chuẩn hóa pixel values về range [-1, 1]
+- Model pretrained đã quen với distribution này
+- Giúp training ổn định hơn
+
+**Công thức:**
+```
+normalized = (pixel - mean) / std
+```
+
+#### 3.3. Augmentation Strategy
+
+**Training:**
+- Áp dụng TẤT CẢ augmentations
+- Mỗi epoch, mỗi ảnh được augment khác nhau
+- Tăng diversity tối đa
+
+**Validation:**
+- CHỈ resize và normalize
+- Không augment để đánh giá chính xác
+
+**Test Time Augmentation (TTA):**
+- Áp dụng cho shapes (class_id >= 10)
+- Rotations: ±5°, ±10°
+- Average probabilities từ các augmentations
+- Tăng accuracy inference
+
+---
+
+### 4. CHI TIẾT VỀ CRAFT DETECTOR
+
+#### 4.1. CRAFT là gì?
+
+**CRAFT (Character Region Awareness For Text detection):**
+- Deep learning model để detect text/characters trong ảnh
+- Pre-trained trên MLT dataset (25k ảnh đa ngôn ngữ)
+- Tốt cho: Scene text, rotated text, complex backgrounds
+
+#### 4.2. Cách hoạt động
+
+**Architecture:**
+- **Backbone**: VGG16 (feature extractor)
+- **Output**: 2 heatmaps
+  - **Text Region Map**: Vùng có text
+  - **Character Link Map**: Kết nối giữa các characters
+
+**Quy trình:**
+```
+1. Input image → Resize (giữ aspect ratio, max 1280px)
+2. Forward pass qua CRAFT network
+3. Output: 2 heatmaps (text regions + character links)
+4. Post-processing: Tìm bounding boxes từ heatmaps
+5. Adjust coordinates về kích thước gốc
+```
+
+**Thresholds:**
+- **text_threshold=0.7**: Confidence để xác định vùng có text
+- **link_threshold=0.4**: Confidence để kết nối characters
+- **low_text=0.4**: Threshold thấp để detect text mờ
+
+#### 4.3. Tại sao dùng CRAFT cho digits?
+
+**Ưu điểm:**
+- Tốt với **rotated text** (chữ số xoay)
+- Tốt với **complex backgrounds** (nền phức tạp)
+- Detect được **small characters** (chữ số nhỏ)
+
+**Nhược điểm:**
+- Chậm hơn Traditional CV (100-200ms vs 50-100ms)
+- Cần GPU để chạy nhanh
+- Model weights lớn (~85MB)
+
+---
+
+### 5. CHI TIẾT VỀ HYBRID DETECTOR
+
+#### 5.1. Chiến lược Hybrid
+
+**Vấn đề:**
+- Traditional CV: Tốt cho shapes, nhưng kém với digits nhỏ/xoay
+- CRAFT: Tốt cho digits, nhưng không detect shapes tốt
+
+**Giải pháp: Hybrid**
+- CRAFT detect digits/text
+- Traditional CV detect shapes (sau khi mask out text regions)
+- Merge và deduplicate
+
+#### 5.2. Quy trình chi tiết
+
+**Bước 1: CRAFT detect text/digits**
+```python
+text_bboxes = self.craft_detector.detect(image)
+```
+
+**Bước 2: Mask out text regions**
+```python
+masked_image = self._mask_regions(image, text_bboxes)
+# Vẽ white rectangles lên các vùng text
+```
+
+**Tại sao mask?**
+- Tránh Traditional CV detect lại digits (đã có từ CRAFT)
+- Chỉ để lại vùng shapes cho Traditional CV
+
+**Bước 3: Traditional CV detect shapes**
+```python
+shape_bboxes = self.cv_detector.detect(masked_image)
+```
+
+**Bước 4: Merge và NMS**
+```python
+all_bboxes = self._merge_bboxes(text_bboxes, shape_bboxes)
+```
+
+#### 5.3. Non-Maximum Suppression (NMS)
+
+**Mục đích:**
+- Loại bỏ overlapping boxes
+- Giữ box tốt nhất (thường là box lớn hơn)
+
+**IoU (Intersection over Union):**
+```
+IoU = (Intersection Area) / (Union Area)
+```
+
+**Ví dụ:**
+```
+Box 1: (100, 100, 200, 200)  # area = 40000
+Box 2: (150, 150, 200, 200)  # area = 40000
+Intersection: (150, 150, 200, 200)  # area = 2500
+Union: (100, 100, 250, 250)  # area = 22500
+IoU = 2500 / 22500 = 0.11
+```
+
+**NMS Algorithm:**
+1. Sort boxes theo area (lớn → nhỏ)
+2. Với mỗi box:
+   - Tính IoU với các box còn lại
+   - Nếu IoU > threshold → loại bỏ box nhỏ hơn
+   - Nếu box bị contain hoàn toàn → loại bỏ
+
+**IoU Threshold:**
+- **0.5**: Loại bỏ boxes overlap >50%
+- **0.2**: Loại bỏ nhiều hơn (cho CRAFT - nhiều overlapping boxes)
+
+---
+
+### 6. CHI TIẾT VỀ TRAINING PROCESS
+
+#### 6.1. Loss Function: CrossEntropyLoss
+
+**Công thức:**
+```
+Loss = -log(P(correct_class))
+```
+
+**Ví dụ:**
+```
+Predicted probabilities: [0.1, 0.8, 0.05, 0.05]  # 4 classes
+True label: 1 (class thứ 2)
+Loss = -log(0.8) = 0.223
+```
+
+**Tại sao dùng CrossEntropy?**
+- Phù hợp với multi-class classification
+- Penalize mạnh khi predict sai
+- Stable và converge nhanh
+
+#### 6.2. Optimizer: Adam
+
+**Adam (Adaptive Moment Estimation):**
+- Kết hợp **Momentum** (tốc độ) và **RMSprop** (adaptive learning rate)
+- Tự động điều chỉnh learning rate cho từng parameter
+
+**Ưu điểm:**
+- Converge nhanh hơn SGD
+- Không cần tune learning rate nhiều
+- Phù hợp với sparse gradients
+
+**Learning Rate: 1e-4**
+- Nhỏ để fine-tune pretrained weights
+- Không phá vỡ features đã học
+
+#### 6.3. Scheduler: ReduceLROnPlateau
+
+**Cách hoạt động:**
+- Monitor validation accuracy
+- Nếu accuracy không tăng trong 2 epochs (patience=2)
+- Giảm learning rate xuống 50% (factor=0.5)
+
+**Tại sao?**
+- Khi accuracy plateau → có thể đang ở local minimum
+- Giảm LR giúp tìm được minimum tốt hơn
+- Fine-tuning tốt hơn
+
+#### 6.4. Batch Size: 64
+
+**Tại sao 64?**
+- **Quá nhỏ (<32)**: Gradient không ổn định, training chậm
+- **Quá lớn (>128)**: Tốn memory, có thể không fit vào GPU
+- **64**: Cân bằng tốt giữa stability và speed
+
+**Memory calculation:**
+```
+Batch size 64, Image 128x128x3
+Memory per image: 128 * 128 * 3 * 4 bytes = 196KB
+Memory per batch: 196KB * 64 = 12.5MB
++ Model weights: ~20MB
++ Gradients: ~20MB
+Total: ~52.5MB (fit vào GPU 6GB+)
+```
+
+#### 6.5. Epochs: 20
+
+**Tại sao 20?**
+- Với pretrained model, chỉ cần vài epochs để fine-tune
+- Sau epoch 5-10, accuracy đã đạt ~98%
+- 20 epochs đảm bảo convergence
+
+**Early Stopping:**
+- Lưu model tốt nhất (best validation accuracy)
+- Tránh overfitting
+
+---
+
+### 7. CHI TIẾT VỀ POST-PROCESSING
+
+#### 7.1. Target Filtering
+
+**Mục đích:**
+- Cho phép user chọn chỉ detect digits, chỉ shapes, hoặc cả hai
+
+**Implementation:**
+```python
+if target_classes == 'digits':
+    return class_id in [0, 1, 2, ..., 9]
+elif target_classes == 'shapes':
+    return class_id in [10, 11, ..., 18]
+else:  # 'all'
+    return True
+```
+
+#### 7.2. Reading Order Sorting
+
+**Mục đích:**
+- Sắp xếp detections theo thứ tự đọc tự nhiên (top-to-bottom, left-to-right)
+
+**Algorithm:**
+1. Tính y_center của mỗi box
+2. Group boxes vào rows (tolerance = 50% avg height)
+3. Sort rows theo y (top → bottom)
+4. Sort boxes trong mỗi row theo x (left → right)
+
+**Ví dụ:**
+```
+Input boxes: [(100, 200), (50, 100), (300, 150), (200, 100)]
+After sorting: [(50, 100), (200, 100), (300, 150), (100, 200)]
+              Row 1      Row 1      Row 2      Row 3
+```
+
+#### 7.3. Test Time Augmentation (TTA)
+
+**Mục đích:**
+- Tăng accuracy inference bằng cách average predictions từ nhiều augmentations
+
+**Chỉ áp dụng cho shapes:**
+- Digits: Không cần (đã đủ chính xác)
+- Shapes: Cần TTA để phân biệt tốt hơn (đặc biệt Nonagon/Octagon/Circle)
+
+**Quy trình:**
+```python
+if predicted_class >= 10:  # Shape
+    # Original prediction
+    probs_original = model(crop)
+    
+    # Rotate +5°
+    crop_rot5 = rotate(crop, 5)
+    probs_rot5 = model(crop_rot5)
+    
+    # Rotate -5°
+    crop_rot_neg5 = rotate(crop, -5)
+    probs_rot_neg5 = model(crop_rot_neg5)
+    
+    # Average
+    final_probs = (probs_original + probs_rot5 + probs_rot_neg5) / 3
+```
+
+**Kết quả:**
+- Accuracy tăng ~0.5-1% cho shapes
+- Trade-off: Inference chậm hơn 3-5x
+
+---
+
+### 8. CÁC CÂU HỎI THƯỜNG GẶP
+
+#### Q1: Tại sao không dùng YOLO/SSD cho detection?
+
+**Trả lời:**
+- YOLO/SSD cần train riêng trên dataset có labels (bounding boxes)
+- Dataset hiện tại chỉ có class labels, không có bounding box labels
+- Traditional CV + CRAFT không cần training, hoạt động out-of-the-box
+- Đủ tốt cho use case này (digits/shapes trên nền sáng)
+
+#### Q2: Tại sao không dùng ResNet thay vì EfficientNet?
+
+**Trả lời:**
+- EfficientNet tối ưu hơn về accuracy/efficiency trade-off
+- Với cùng accuracy, EfficientNet nhỏ hơn và nhanh hơn ResNet
+- EfficientNet-B0: ~4M parameters vs ResNet-18: ~11M parameters
+
+#### Q3: Tại sao input size 128x128 thay vì 224x224 (ImageNet standard)?
+
+**Trả lời:**
+- 128x128 đủ để nhận diện digits/shapes (objects đơn giản)
+- Nhỏ hơn → nhanh hơn, ít memory hơn
+- Trade-off: Có thể mất một chút accuracy, nhưng vẫn đạt 99%
+
+#### Q4: Tại sao balanced sampling 67% shapes?
+
+**Trả lời:**
+- MNIST: 60K images
+- Shapes: 90K images (nhưng chỉ sample 67% = ~60K)
+- Balance dataset để model không bias về một class nào
+- Nếu không balance: Model có thể học tốt digits nhưng kém shapes (hoặc ngược lại)
+
+#### Q5: Tại sao dùng Grayscale → RGB thay vì train model mới cho grayscale?
+
+**Trả lời:**
+- Sử dụng pretrained weights (đã train trên RGB)
+- Nếu train model mới cho grayscale → mất lợi ích của pretrained weights
+- Grayscale → RGB đơn giản và hiệu quả hơn
+
+---
+
+### 9. TỐI ƯU HÓA VÀ CẢI TIẾN
+
+#### 9.1. Tại sao tăng input size từ 64 → 128?
+
+**Vấn đề với 64x64:**
+- Khó phân biệt Nonagon (9 cạnh) và Circle
+- Khó phân biệt Octagon (8 cạnh) và Circle
+- Edges bị mờ khi resize nhỏ
+
+**Giải pháp: 128x128**
+- Giữ được nhiều chi tiết hơn
+- Accuracy tăng: Circle 76% → 90%+, Nonagon 73% → 85%+
+
+#### 9.2. Tại sao augmentation mạnh hơn?
+
+**Rotation: 15° → 30°**
+- Tăng diversity
+- Model học được với góc xoay lớn hơn
+
+**Thêm Perspective:**
+- Mô phỏng góc chụp thực tế
+- Tăng robustness
+
+**Thêm ColorJitter:**
+- Mô phỏng điều kiện ánh sáng khác nhau
+- Tăng generalization
+
+---
+
+### 10. METRICS VÀ ĐÁNH GIÁ
+
+#### 10.1. Accuracy Metrics
+
+**Overall Accuracy:**
+```
+Accuracy = (Correct Predictions) / (Total Predictions)
+```
+
+**Per-Class Accuracy:**
+```
+Class Accuracy = (Correct for Class) / (Total for Class)
+```
+
+**Confusion Matrix:**
+- Ma trận NxN (N=19 classes)
+- Hàng i, cột j: Số lượng class i bị predict thành class j
+- Đường chéo: Correct predictions
+- Off-diagonal: Misclassifications
+
+#### 10.2. Tại sao Nonagon khó nhất?
+
+**Lý do:**
+- Nonagon (9 cạnh) rất giống Circle khi nhìn từ xa hoặc khi resolution thấp
+- Chỉ khác nhau ở số cạnh (9 vs vô số)
+- Model dễ nhầm → accuracy thấp nhất (94.69%)
+
+**Giải pháp:**
+- Tăng input size (64→128)
+- TTA với rotations
+- Vẫn còn room for improvement
+
+---
+
+**Kết luận:**
+README này đã giải thích chi tiết về:
+- ✅ Pretrained models và Transfer Learning
+- ✅ Contour detection và bounding boxes
+- ✅ Data augmentation chi tiết
+- ✅ CRAFT detector
+- ✅ Hybrid detector
+- ✅ Training process
+- ✅ Post-processing
+- ✅ Các câu hỏi thường gặp
+
+Bạn có thể sử dụng các phần này để trả lời các câu hỏi sâu từ thầy giáo!
 
 ## 📊 Dataset
 

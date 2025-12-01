@@ -994,7 +994,7 @@ if __name__ == '__main__':
     
     # MQTT arguments (with defaults from environment or hardcoded)
     # Default MQTT configuration
-    default_broker_url = os.getenv('MQTT_BROKER_URL', 'mqtts://6737c5bbe1cd42bc9fe23790f95a7e72.s1.eu.hivemq.cloud')
+    default_broker_url = os.getenv('MQTT_BROKER_URL', 'mqtts://c35f82397d674292948a051226f10fa6.s1.eu.hivemq.cloud')
     default_username = os.getenv('MQTT_USERNAME', 'server')
     default_password = os.getenv('MQTT_PASSWORD', 'Server123456')
     

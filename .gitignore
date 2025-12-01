@@ -21,6 +21,17 @@
 !train_unified_classifier.ipynb
 !train_unified_classifier_best.ipynb
 
+# Jupyter notebooks & reports
+!training_history.pnb
+!train_unified_classification.ipynb
+
+# Result CSVs & mappings
+!digit_test_results.csv
+!per_class_performance/
+!per_class_performance/**
+!label_mapping.json
+!label_mapping_71classes.json
+
 # Documentation
 !README.md
 !requirements.txt
@@ -32,18 +43,20 @@
 # Folders to push
 !craft_repo/
 !craft_repo/**
-!dataset/
-!dataset/**
+!error_analysis/
+!error_analysis/**
+!pipeline_2/
+!pipeline_2/**
 
-# Ignore Shapes_Classifier (not needed on GitHub)
+# Bỏ toàn bộ dữ liệu gốc & trọng số model (quá nặng)
+mnist_competition/
+mnist_competition/**
 Shapes_Classifier/
 Shapes_Classifier/**
+weights/
 
-# Weights: Only push .zip files, ignore .pth files
-!weights/
-!weights/*.zip
-# Explicitly ignore .pth files (must come after unignore)
-weights/*.pth
+# Bỏ toàn bộ file nén lớn
+*.zip
 
 # ============================================================================
 # Python
@@ -129,7 +142,6 @@ Test_ChuVietTay.png
 
 # Training outputs
 training_history.png
-per_class_performance.csv
 confusion_matrix.png
 confusion_matrix_normalized.png
 evaluation_report.txt
@@ -156,4 +168,3 @@ IMPROVEMENTS_REALWORLD.md
 MQTT_USAGE.md
 CRAFT_SHAPES_GUIDE.md
 mnist_notebook.ipynb
-label_mapping.json
